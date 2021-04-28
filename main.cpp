@@ -280,9 +280,9 @@ void simpleGauss()
 	double **kernel = setupKernel(radius);
 
 	PixelValue **filteredPixels;
-	filteredPixels = (PixelValue **)malloc(image.height * sizeof(*filteredPixels));
+	filteredPixels = static_cast<PixelValue **>(malloc(image.height * sizeof(*filteredPixels)));
 	for(int i = 0; i < image.height; i++) {
-		filteredPixels[i] = (PixelValue *)malloc(image.width * sizeof(PixelValue));
+		filteredPixels[i] = static_cast<PixelValue *>(malloc(image.width * sizeof(PixelValue)));
 	}
 
 	apply(kernel, radius, pixels, image.width, image.height, filteredPixels);
