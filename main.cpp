@@ -101,7 +101,7 @@ void printCompilerError(cl_program program, cl_device_id device)
 	checkStatus(status);
 
 	// allocate space for log
-	log = static_cast<char*>(malloc(logSize));
+	log = new char[logSize];
 	if (!log)
 	{
 		exit(EXIT_FAILURE);
@@ -162,9 +162,9 @@ PixelValue **convertImageToPixels(tga::TGAImage image)
 	int h = image.height;
 	
 	PixelValue **pixels;
-	pixels = (PixelValue **)malloc(h * sizeof(*pixels));
+	pixels = new PixelValue* [h];
 	for(int i = 0; i < h; i++) {
-		pixels[i] = (PixelValue *)malloc(w * sizeof(PixelValue));
+		pixels[i] = new PixelValue [w];
 	}
 	
 	int pos = 0;
@@ -208,9 +208,9 @@ double** setupKernel(int radius)
 	double sum = 0;
 	int x,y;
 
-	double **_kernel = static_cast<double **>(malloc(width * sizeof(double)));
+	double **_kernel = new double*[width];
 	for(int i = 0; i < width; i++) {
-		_kernel[i] = static_cast<double *>(malloc(height * sizeof(double)));
+		_kernel[i] = new double [height];
 	}
 	
 	for(y = -radius; y <= radius; y++) {
@@ -238,9 +238,9 @@ PixelValue** apply(double **filter, int radius, PixelValue **pixels, int imageWi
     int newImageWidth = imageWidth;
 	
 	PixelValue **outPixels;
-	outPixels = (PixelValue **)malloc(imageHeight * sizeof(*outPixels));
+	outPixels = new PixelValue*[imageHeight];
 	for(int i = 0; i < imageHeight; i++) {
-		outPixels[i] = (PixelValue *)malloc(imageWidth * sizeof(PixelValue));
+		outPixels[i] = new PixelValue[imageWidth];
 	}
 	for (int y = radius ; y < imageHeight - radius; y++) {
 		for (int x = radius ; x < imageWidth - radius; x++) {
