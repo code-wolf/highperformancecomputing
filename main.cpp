@@ -229,7 +229,7 @@ double** setupKernel(int radius)
 	return _kernel;
 }
 
-PixelValue** apply(double **filter, int radius, PixelValue **pixels, int imageWidth, int imageHeight)
+void apply(double **filter, int radius, PixelValue **pixels, int imageWidth, int imageHeight, PixelValue **outPixels)
 {
 	int i, j, h, w, pos;
 	int filterHeight = 2 * radius + 1;
@@ -237,13 +237,13 @@ PixelValue** apply(double **filter, int radius, PixelValue **pixels, int imageWi
 	int newImageHeight = imageHeight;
     int newImageWidth = imageWidth;
 	
-	
+	/*
 	PixelValue **outPixels;
 	outPixels = (PixelValue **)malloc(imageHeight * sizeof(*outPixels));
 	for(int i = 0; i < imageHeight; i++) {
 		outPixels[i] = (PixelValue *)malloc(imageWidth * sizeof(PixelValue));
 	}
-
+	*/
 	for (int y = radius ; y < imageHeight - radius; y++) {
 		for (int x = radius ; x < imageWidth - radius; x++) {
 			PixelValue newPixelValue;
@@ -268,8 +268,6 @@ PixelValue** apply(double **filter, int radius, PixelValue **pixels, int imageWi
 			outPixels[y][x] = newPixelValue;
 		}
 	}
-
-	return outPixels;
 }
 
 
@@ -280,7 +278,14 @@ void simpleGauss()
 	PixelValue **pixels = convertImageToPixels(image);
 
 	double **kernel = setupKernel(radius);
-	PixelValue **filteredPixels = apply(kernel, radius, pixels, image.width, image.height);
+
+	PixelValue **filteredPixels;
+	filteredPixels = (PixelValue **)malloc(image.height * sizeof(*filteredPixels));
+	for(int i = 0; i < image.height; i++) {
+		filteredPixels[i] = (PixelValue *)malloc(image.width * sizeof(PixelValue));
+	}
+
+	apply(kernel, radius, pixels, image.width, image.height, filteredPixels);
 
 	tga::TGAImage outImage;
 	outImage.height = image.height;
