@@ -215,7 +215,7 @@ double** setupKernel(int radius)
 	
 	for(y = -radius; y <= radius; y++) {
 		for(x = -radius; x <= radius; x++) {
-			_kernel[x + radius][y + radius] = exp(-(x * x + y * y) / (2 * sigma * sigma)) / (2 * M_PI * sigma * sigma);
+			_kernel[x + radius][y + radius] = exp(-(x * x + y * y) / (2 * sigma * sigma)) / (2 * CL_M_PI * sigma * sigma);
             sum += _kernel[x + radius][y + radius];
 		}
 	}
@@ -271,21 +271,19 @@ void apply(double **filter, int radius, PixelValue **pixels, int imageWidth, int
 }
 
 
-void simpleGauss()
+void simpleGauss(int radius)
 {
-	int radius = 2;
 	tga::TGAImage image = loadImage("lena.tga");
 	PixelValue **pixels = convertImageToPixels(image);
 
 	double **kernel = setupKernel(radius);
+	
+	PixelValue** filteredPixels = new PixelValue*[image.height];
 
-	cout << "size of PixelValue: " << sizeof(PixelValue) << endl;
-	PixelValue **filteredPixels;
-	filteredPixels = static_cast<PixelValue **>(malloc(image.height * sizeof(PixelValue)));
-	for(int i = 0; i < image.height; i++) {
-		filteredPixels[i] = static_cast<PixelValue *>(malloc(image.width * sizeof(PixelValue)));
+	for (int i = 0; i < image.height; i++) {
+		filteredPixels[i] = new PixelValue[image.width];
 	}
-
+	
 	apply(kernel, radius, pixels, image.width, image.height, filteredPixels);
 
 	tga::TGAImage outImage;
@@ -301,7 +299,7 @@ void simpleGauss()
 
 int main(int argc, char **argv) 
 {
-	simpleGauss();
+	simpleGauss(11);
 
 	// input and output arrays
 	const unsigned int elementSize = 10;
