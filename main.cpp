@@ -294,7 +294,7 @@ void simpleGauss(int radius)
 
 	convertPixelsToImage(filteredPixels, outImage);
 
-	tga::saveTGA(outImage, "lena_out_2.tga");
+	tga::saveTGA(outImage, ("lena_out_" + std::to_string(radius) + ".tga").c_str());
 }
 
 int main(int argc, char **argv) 
