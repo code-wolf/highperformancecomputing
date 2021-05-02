@@ -19,9 +19,9 @@
 using namespace std;
 
 typedef struct PixelValue {
-	double r;
-	double g;
-	double b;
+	float r;
+	float g;
+	float b;
 } _PixelValue;
 
 std::string cl_errorstring(cl_int err)
@@ -200,7 +200,7 @@ void convertPixelsToImage(PixelValue **pixels, tga::TGAImage &image)
 	image.imageData = outData;
 }
 
-double** setupKernel(int radius)
+double** setupGaussKernel(int radius)
 {
 	double sigma = max(radius / 2, 1);
 	int height = 2 * radius + 1;
@@ -263,6 +263,9 @@ PixelValue** apply(double **filter, int radius, PixelValue **pixels, int imageWi
 			newPixelValue.r = r;
 			newPixelValue.g = g;
 			newPixelValue.b = b;
+
+			printf("(%d,%d): (%f,%f,%f)\n", y, x, oldPixelValue.r, oldPixelValue.g, oldPixelValue.b);
+
 			outPixels[y][x] = newPixelValue;
 		}
 	}
@@ -270,15 +273,131 @@ PixelValue** apply(double **filter, int radius, PixelValue **pixels, int imageWi
 	return outPixels;
 }
 
+PixelValue** applyOnGPU(double **filter,
+						cl_int radius,
+						PixelValue **pixels,
+						int imageWidth,
+						int imageHeight,
+						cl_context context,
+						cl_command_queue commandQueue,
+						cl_kernel kernel)
+{
+	int i, j, h, w, pos;
+	int filterHeight = 2 * radius + 1;
+	int filterWidth = 2 * radius + 1;
+	cl_int status;
+
+	size_t num_elements = (imageHeight * imageWidth);
+	size_t vector_size = (num_elements * sizeof(PixelValue));
+	size_t filter_size = (filterHeight * filterWidth) * sizeof(double);
+
+	cout << "pixel vector size: " << vector_size << endl;
+	PixelValue *pixelVector = static_cast<PixelValue *>(malloc(vector_size));
+	PixelValue *outPixels = static_cast<PixelValue *>(malloc(vector_size));
+	double *filterVector = static_cast<double *>(malloc(filter_size));
+	
+	pos = 0;
+	for(int y = 0; y < imageHeight; y++) {
+		for(int x = 0; x < imageWidth; x++) {
+			pixelVector[pos] = pixels[y][x];
+			pos ++;
+		}
+	}
+
+	pos = 0;
+	for(int y = 0; y < filterHeight; y++) {
+		for (int x = 0; x < filterWidth; x++) {
+			filterVector[pos] = filter[y][x];
+			//printf("filter %d: %f\n", pos, filterVector[pos]);
+			pos++;
+		}
+	}
+
+	cl_mem pixelBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY, vector_size, NULL, &status);
+	checkStatus(status);
+	cl_mem filterBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY, filter_size, NULL, &status);
+	checkStatus(status);
+	cl_mem outputBuffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY, vector_size, NULL, &status);
+	checkStatus(status);
+
+	checkStatus(clEnqueueWriteBuffer(commandQueue, pixelBuffer, CL_TRUE, 0, vector_size, pixelVector, 0, NULL, NULL));
+	checkStatus(clEnqueueWriteBuffer(commandQueue, filterBuffer, CL_TRUE, 0, filter_size, filterVector, 0, NULL, NULL));
+
+	checkStatus(clSetKernelArg(kernel, 0, sizeof(cl_mem), &pixelBuffer));
+	checkStatus(clSetKernelArg(kernel, 1, sizeof(cl_mem), &filterBuffer));
+	checkStatus(clSetKernelArg(kernel, 2, sizeof(cl_mem), &outputBuffer));
+
+	//size_t globalWorkSize = static_cast<size_t>(num_elements);
+	
+	size_t globalWorkSize[2] = {imageHeight, imageWidth};
+	cout << "global work size: " << globalWorkSize[0] << "," << globalWorkSize[1] << endl;
+	checkStatus(clEnqueueNDRangeKernel(commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL));
+
+	checkStatus(clEnqueueReadBuffer(commandQueue, outputBuffer, CL_TRUE, 0, vector_size, outPixels, 0, NULL, NULL));
+
+	/*
+	for(int i = 0; i < num_elements; i++) {
+		printf("output %d: (%f,%f,%f)\n", i, outPixels[i].r, outPixels[i].g, outPixels[i].b);
+	}
+	*/
+
+	PixelValue **result;
+	result = static_cast<PixelValue **>(malloc(imageHeight * sizeof(*result)));
+	for(int i = 0; i < imageHeight; i++) {
+		result[i] = static_cast<PixelValue *>(malloc(imageWidth * sizeof(PixelValue)));
+	}
+
+	pos = 0;
+	for (int y = 0; y < imageHeight; y++) {
+		for(int x = 0; x < imageWidth; x++) {
+			result[y][x] = outPixels[pos];
+			//printf("(%d,%d): (%f,%f,%f)\n", y, x, result[y][x].r, result[y][x].g, result[y][x].b);
+			
+			pos++;
+		}
+	}
+
+	/*
+	for (int y = radius ; y < imageHeight - radius; y++) {
+		for (int x = radius ; x < imageWidth - radius; x++) {
+			PixelValue newPixelValue;
+			PixelValue oldPixelValue = pixels[y][x];
+
+			double r = 0, g = 0, b = 0;
+
+			for (h = -radius; h <= radius; h++) {
+				for (w = -radius ; w <= radius ; w++) {
+					double kernelValue = filter[h + radius][w + radius];
+					PixelValue pixelValue = pixels[y + h][x + w];
+					
+					r += kernelValue * pixelValue.r;
+					g += kernelValue * pixelValue.g;
+					b += kernelValue * pixelValue.b;
+				}
+			}
+			
+			newPixelValue.r = r;
+			newPixelValue.g = g;
+			newPixelValue.b = b;
+			outPixels[y][x] = newPixelValue;
+		}
+	}
+	*/
+
+	return result;
+}
+
 
 void simpleGauss(int radius)
 {
-	tga::TGAImage image = loadImage("lena.tga");
+	tga::TGAImage image = loadImage("lena_small.tga");
 	PixelValue **pixels = convertImageToPixels(image);
 
-	double **kernel = setupKernel(radius);
+	double **kernel = setupGaussKernel(radius);
 	
-	PixelValue **filteredPixels = apply(kernel, radius, pixels, image.width, image.height);
+
+	PixelValue **filteredPixels;
+	filteredPixels = apply(kernel, radius, pixels, image.width, image.height);
 
 	tga::TGAImage outImage;
 	outImage.height = image.height;
@@ -288,12 +407,35 @@ void simpleGauss(int radius)
 
 	convertPixelsToImage(filteredPixels, outImage);
 
-	tga::saveTGA(outImage, ("lena_out_" + std::to_string(radius) + ".tga").c_str());
+	tga::saveTGA(outImage, ("lena_small_out_" + std::to_string(radius) + ".tga").c_str());
+}
+
+void simpleGaussGPU(int radius, cl_context context, cl_command_queue command_queue, cl_kernel kernel)
+{
+	tga::TGAImage image = loadImage("lena.tga");
+	PixelValue **pixels = convertImageToPixels(image);
+
+	double **gaussKernel = setupGaussKernel(radius);
+	
+
+	PixelValue **filteredPixels;
+	filteredPixels = applyOnGPU(gaussKernel, radius, pixels, image.width, image.height, context, command_queue, kernel);
+	
+	tga::TGAImage outImage;
+	outImage.height = image.height;
+	outImage.width = image.width;
+	outImage.bpp = image.bpp;
+	outImage.type = image.type;
+
+	convertPixelsToImage(filteredPixels, outImage);
+
+	tga::saveTGA(outImage, ("lena_out_gpu_" + std::to_string(radius) + ".tga").c_str());
 }
 
 int main(int argc, char **argv) 
 {
-	simpleGauss(11);
+	int radius = 11;
+	//simpleGauss(radius);
 
 	// input and output arrays
 	const unsigned int elementSize = 10;
@@ -348,19 +490,22 @@ int main(int argc, char **argv)
 	checkStatus(status);
 
 	// allocate two input and one output buffer for the three vectors
+	/*
 	cl_mem bufferA = clCreateBuffer(context, CL_MEM_READ_ONLY, dataSize, NULL, &status);
 	checkStatus(status);
 	cl_mem bufferB = clCreateBuffer(context, CL_MEM_READ_ONLY, dataSize, NULL, &status);
 	checkStatus(status);
 	cl_mem bufferC = clCreateBuffer(context, CL_MEM_WRITE_ONLY, dataSize, NULL, &status);
 	checkStatus(status);
-
+	*/
 	// write data from the input vectors to the buffers
+	/*
 	checkStatus(clEnqueueWriteBuffer(commandQueue, bufferA, CL_TRUE, 0, dataSize, vectorA, 0, NULL, NULL));
 	checkStatus(clEnqueueWriteBuffer(commandQueue, bufferB, CL_TRUE, 0, dataSize, vectorB, 0, NULL, NULL));
-	
+	*/
 	// read the kernel source
-	const char* kernelFileName = "kernel.cl";
+	//const char* kernelFileName = "kernel.cl";
+	const char* kernelFileName = "gauss.cl";
 	std::ifstream ifs(kernelFileName);
 	if (!ifs.good())
 	{
@@ -385,13 +530,21 @@ int main(int argc, char **argv)
 	}
 
 	// create the vector addition kernel
+	/*
 	cl_kernel kernel = clCreateKernel(program, "vector_add", &status);
 	checkStatus(status);
+	*/
+	cl_kernel kernel = clCreateKernel(program, "gauss", &status);
+	checkStatus(status);
+	
+	
 
 	// set the kernel arguments
+	/*
 	checkStatus(clSetKernelArg(kernel, 0, sizeof(cl_mem), &bufferA));
 	checkStatus(clSetKernelArg(kernel, 1, sizeof(cl_mem), &bufferB));
 	checkStatus(clSetKernelArg(kernel, 2, sizeof(cl_mem), &bufferC));
+	*/
 
 	// output device capabilities
 	size_t maxWorkGroupSize;
@@ -410,19 +563,25 @@ int main(int argc, char **argv)
 	printf("\n");
 	free(maxWorkItemSizes);
 
+	simpleGaussGPU(radius, context, commandQueue, kernel);
+
 	// execute the kernel
 	// ndrange capabilites only need to be checked when we specify a local work group size manually
 	// in our case we provide NULL as local work group size, which means groups get formed automatically
+	/*
 	size_t globalWorkSize = static_cast<size_t>(elementSize);
 	checkStatus(clEnqueueNDRangeKernel(commandQueue, kernel, 1, NULL, &globalWorkSize, NULL, 0, NULL, NULL));
+	*/
 
 	// read the device output buffer to the host output array
-	checkStatus(clEnqueueReadBuffer(commandQueue, bufferC, CL_TRUE, 0, dataSize, vectorC, 0, NULL, NULL));
+	//checkStatus(clEnqueueReadBuffer(commandQueue, bufferC, CL_TRUE, 0, dataSize, vectorC, 0, NULL, NULL));
 
 	// output result
+	/*
 	printVector(vectorA, elementSize, "Input A");
 	printVector(vectorB, elementSize, "Input B");
 	printVector(vectorC, elementSize, "Output C");
+	*/
 
 	// release allocated resources
 	free(vectorC);
@@ -432,9 +591,11 @@ int main(int argc, char **argv)
 	// release opencl objects
 	checkStatus(clReleaseKernel(kernel));
 	checkStatus(clReleaseProgram(program));
+	/*
 	checkStatus(clReleaseMemObject(bufferC));
 	checkStatus(clReleaseMemObject(bufferB));
 	checkStatus(clReleaseMemObject(bufferA));
+	*/
 	checkStatus(clReleaseCommandQueue(commandQueue));
 	checkStatus(clReleaseContext(context));
 	
