@@ -194,6 +194,7 @@ PixelValue** applyOnGPU(double **filter,
 	checkStatus(clSetKernelArg(kernel, 0, sizeof(cl_mem), &pixelBuffer));
 	checkStatus(clSetKernelArg(kernel, 1, sizeof(cl_mem), &filterBuffer));
 	checkStatus(clSetKernelArg(kernel, 2, sizeof(cl_mem), &outputBuffer));
+	checkStatus(clSetKernelArg(kernel, 3, sizeof(int), &radius));
 	
 	size_t globalWorkSize[2] = {imageHeight, imageWidth};
 	cout << "global work size: " << globalWorkSize[0] << "," << globalWorkSize[1] << endl;
@@ -245,7 +246,7 @@ void gaussianBlur(int radius, cl_context context, cl_command_queue command_queue
 
 int main(int argc, char **argv) 
 {
-	int radius = 11;
+	int radius = 5;
 	
 	// used for checking error status of api calls
 	cl_int status;

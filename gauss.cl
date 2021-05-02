@@ -8,22 +8,15 @@ typedef struct _PixelValue
 __kernel void gauss(
 	__global const PixelValue *imageData,
 	__global const double *filter,
-	__global PixelValue *outputBuffer
+	__global PixelValue *outputBuffer,
+	__private int radius
 )
 {	
 	size_t outputHeight = get_global_size(0);
 	size_t outputWidth = get_global_size(1);
-	int radius = 11;
 	size_t filterWidth = 2 * radius + 1;
 	size_t y = get_global_id(0);
 	size_t x = get_global_id(1);
-
-
-	/*
-	float r = imageData[y * outputWidth + x].r;
-	float g = imageData[y * outputWidth + x].g;
-	float b = imageData[y * outputWidth + x].b;
-	*/
 	
 	PixelValue newPixelValue;
 
@@ -58,25 +51,5 @@ __kernel void gauss(
 
 		outputBuffer[imagePos] = newPixelValue;	
 	}
-	/*
-	PixelValue oldPixelValue = imageData[y * outputWidth + x];
-
-	float r = 0, g = 0, b = 0;
-	
-	if(y < outputHeight - radius && x < outputWidth - radius) {
-		for (int h = -radius; h <= radius; h++) {
-			for (int w = -radius ; w <= radius ; w++) {
-				//PixelValue pixelValue = imageData[_y * outputWidth + _x];
-			}
-		}
-	}
-
-	newPixelValue.r = r;
-	newPixelValue.g = g;
-	newPixelValue.b = b;
-	*/
-	//outputBuffer[y * outputWidth + x] = newPixelValue;
-	
-    //printf("|%d|%d|: (%f,%f,%f)\n", x, y, r, g, b);
 }
 
