@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #else
 #include "CL/cl.h"
-#include <malloc.h>
 #endif
 
 #include <iostream>
@@ -157,7 +156,7 @@ PixelValue** applyOnGPU(double **filter,
 	size_t filter_size = (filterHeight * filterWidth) * sizeof(double);
 
 	// allocate memory and convert 2D array to 1D vector for the actual image data
-	PixelValue *pixelVector = static_cast<PixelValue *>(malloc(vector_size));
+	PixelValue *pixelVector = new PixelValue[vector_size];
 	pos = 0;
 	for(int y = 0; y < imageHeight; y++) {
 		for(int x = 0; x < imageWidth; x++) {
@@ -167,7 +166,8 @@ PixelValue** applyOnGPU(double **filter,
 	}
 
 	// allocate memory and convert 2D array to 1D vector for the gauss kernel
-	double *filterVector = static_cast<double *>(malloc(filter_size));pos = 0;
+	double *filterVector = new double[filter_size];
+	pos = 0;
 	for(int y = 0; y < filterHeight; y++) {
 		for (int x = 0; x < filterWidth; x++) {
 			filterVector[pos] = filter[y][x];
@@ -176,8 +176,8 @@ PixelValue** applyOnGPU(double **filter,
 	}
 
 	// memory for the resulting image
-	PixelValue *outPixels = static_cast<PixelValue *>(malloc(vector_size));
-	memcpy(outPixels, pixelVector, vector_size);
+	PixelValue *outPixels = new PixelValue[vector_size];
+	memcpy_s(outPixels, vector_size, pixelVector, vector_size);
 
 	// create OpenCL Buffers
 	cl_mem pixelBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY, vector_size, NULL, &status);
@@ -205,9 +205,9 @@ PixelValue** applyOnGPU(double **filter,
 
 	// allocate memory for the result image and convert the 1D array to a nice 2D array
 	PixelValue **result;
-	result = static_cast<PixelValue **>(malloc(imageHeight * sizeof(*result)));
+	result = new PixelValue*[imageHeight];
 	for(int i = 0; i < imageHeight; i++) {
-		result[i] = static_cast<PixelValue *>(malloc(imageWidth * sizeof(PixelValue)));
+		result[i] = new PixelValue[imageWidth];
 	}
 
 	pos = 0;
@@ -231,7 +231,7 @@ void gaussianBlur(int radius, cl_context context, cl_command_queue command_queue
 	tga::TGAImage image = loadImage("lena.tga");
 	
 	PixelValue **pixels = convertImageToPixels(image);
-	double **gaussKernel = setupGaussKernel(radius);
+	double **gaussKernel = setupGaussFilterKernel(radius);
 	PixelValue **filteredPixels = applyOnGPU(gaussKernel, radius, pixels, image.width, image.height, context, command_queue, kernel);
 	
 	tga::TGAImage outImage;
@@ -247,7 +247,8 @@ void gaussianBlur(int radius, cl_context context, cl_command_queue command_queue
 
 int main(int argc, char **argv) 
 {
-	int radius = 11;
+	// Gauss filter radius
+	const int radius = 9;
 	
 	// used for checking error status of api calls
 	cl_int status;
@@ -313,7 +314,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	// create the vector addition kernel
+	// create the gauss kernel
 	cl_kernel kernel = clCreateKernel(program, "gauss", &status);
 	checkStatus(status);
 	
@@ -326,7 +327,7 @@ int main(int argc, char **argv)
 	checkStatus(clGetDeviceInfo(device, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(cl_uint), &maxWorkItemDimensions, NULL));
 	printf("Device Capabilities: Max work item dimensions: %u\n", maxWorkItemDimensions);
 	
-	size_t* maxWorkItemSizes = static_cast<size_t*>(malloc(maxWorkItemDimensions * sizeof(size_t)));
+	size_t* maxWorkItemSizes = new size_t[maxWorkItemDimensions];
 	checkStatus(clGetDeviceInfo(device, CL_DEVICE_MAX_WORK_ITEM_SIZES, maxWorkItemDimensions * sizeof(size_t), maxWorkItemSizes, NULL));
 	printf("Device Capabilities: Max work items in group per dimension:");
 	for (cl_uint i = 0; i < maxWorkItemDimensions; ++i)
@@ -335,10 +336,10 @@ int main(int argc, char **argv)
 	free(maxWorkItemSizes);
 
 	gaussianBlur(radius, context, commandQueue, kernel);
+
 	// release opencl objects
 	checkStatus(clReleaseKernel(kernel));
 	checkStatus(clReleaseProgram(program));
-	
 	checkStatus(clReleaseCommandQueue(commandQueue));
 	checkStatus(clReleaseContext(context));
 	

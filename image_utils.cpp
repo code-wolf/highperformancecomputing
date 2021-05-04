@@ -23,7 +23,7 @@ tga::TGAImage loadImage(const char *path)
 	return image;
 }
 
-double** setupGaussKernel(int radius)
+double** setupGaussFilterKernel(int radius)
 {
 	double sigma = max(radius / 2, 1);
 	int height = 2 * radius + 1;
@@ -43,8 +43,8 @@ double** setupGaussKernel(int radius)
 		}
 	}
 
-	for (y=0 ; y < height ; y++) {
-        for (x=0 ; x < width ; x++) {
+	for (y = 0 ; y < height ; y++) {
+        for (x = 0 ; x < width ; x++) {
             _kernel[y][x] /= sum;
         }
     }
