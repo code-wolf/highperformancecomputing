@@ -177,6 +177,7 @@ PixelValue** applyOnGPU(double **filter,
 
 	// memory for the resulting image
 	PixelValue *outPixels = static_cast<PixelValue *>(malloc(vector_size));
+	memcpy(outPixels, pixelVector, vector_size);
 
 	// create OpenCL Buffers
 	cl_mem pixelBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY, vector_size, NULL, &status);
@@ -246,7 +247,7 @@ void gaussianBlur(int radius, cl_context context, cl_command_queue command_queue
 
 int main(int argc, char **argv) 
 {
-	int radius = 5;
+	int radius = 11;
 	
 	// used for checking error status of api calls
 	cl_int status;
