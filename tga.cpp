@@ -49,7 +49,7 @@ bool tga::saveTGA(const TGAImage& image, const char * filename)
 		imageData[cswap] ^= imageData[cswap+2];
 	}
 
-	for (int i = 0; i < imageData.size(); ++i)
+	for (size_t i = 0; i < imageData.size(); ++i)
 	{
 		unsigned char x = imageData[i];
 		myfile << imageData[i];

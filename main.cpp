@@ -140,13 +140,13 @@ void printPixels(PixelValue **pixels, int width, int height, const char *filenam
 PixelValue** applyOnGPU(double **filter,
 						cl_int radius,
 						PixelValue **pixels,
-						int imageWidth,
-						int imageHeight,
+						size_t imageWidth,
+						size_t imageHeight,
 						cl_context context,
 						cl_command_queue commandQueue,
 						cl_kernel kernel)
 {
-	int i, j, h, w, pos;
+	int pos; 
 	int filterHeight = 2 * radius + 1;
 	int filterWidth = 2 * radius + 1;
 	cl_int status;
@@ -156,10 +156,10 @@ PixelValue** applyOnGPU(double **filter,
 	size_t filter_size = (filterHeight * filterWidth) * sizeof(double);
 
 	// allocate memory and convert 2D array to 1D vector for the actual image data
-	PixelValue *pixelVector = new PixelValue[vector_size];
+	PixelValue *pixelVector = new PixelValue[vector_size]();
 	pos = 0;
-	for(int y = 0; y < imageHeight; y++) {
-		for(int x = 0; x < imageWidth; x++) {
+	for(size_t y = 0; y < imageHeight; y++) {
+		for(size_t x = 0; x < imageWidth; x++) {
 			pixelVector[pos] = pixels[y][x];
 			pos ++;
 		}
@@ -176,7 +176,7 @@ PixelValue** applyOnGPU(double **filter,
 	}
 
 	// memory for the resulting image
-	PixelValue *outPixels = new PixelValue[vector_size];
+	PixelValue* outPixels = new PixelValue[vector_size];
 	memcpy_s(outPixels, vector_size, pixelVector, vector_size);
 
 	// create OpenCL Buffers
@@ -206,13 +206,13 @@ PixelValue** applyOnGPU(double **filter,
 	// allocate memory for the result image and convert the 1D array to a nice 2D array
 	PixelValue **result;
 	result = new PixelValue*[imageHeight];
-	for(int i = 0; i < imageHeight; i++) {
+	for(size_t i = 0; i < imageHeight; i++) {
 		result[i] = new PixelValue[imageWidth];
 	}
 
 	pos = 0;
-	for (int y = 0; y < imageHeight; y++) {
-		for(int x = 0; x < imageWidth; x++) {
+	for (size_t y = 0; y < imageHeight; y++) {
+		for(size_t x = 0; x < imageWidth; x++) {
 			result[y][x] = outPixels[pos];
 			pos++;
 		}
@@ -333,7 +333,7 @@ int main(int argc, char **argv)
 	for (cl_uint i = 0; i < maxWorkItemDimensions; ++i)
 		printf(" %u:%zu", i, maxWorkItemSizes[i]);
 	printf("\n");
-	free(maxWorkItemSizes);
+	delete[] (maxWorkItemSizes);
 
 	gaussianBlur(radius, context, commandQueue, kernel);
 

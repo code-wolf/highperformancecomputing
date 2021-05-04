@@ -31,7 +31,7 @@ double** setupGaussFilterKernel(int radius)
 	double sum = 0;
 	int x,y;
 
-	double **_kernel = new double*[width];
+	double** _kernel = new double* [width];
 	for(int i = 0; i < width; i++) {
 		_kernel[i] = new double [height];
 	}
@@ -55,8 +55,8 @@ double** setupGaussFilterKernel(int radius)
 void convertPixelsToImage(PixelValue **pixels, tga::TGAImage &image)
 {
 	vector<unsigned char> outData;
-	for(int y = 0; y < image.height; y++) {
-		for(int x = 0; x < image.width; x++) {
+	for(unsigned int y = 0; y < image.height; y++) {
+		for(unsigned int x = 0; x < image.width; x++) {
 			PixelValue pixel = pixels[y][x];
 
 			outData.push_back(pixel.r * 255);
@@ -82,9 +82,9 @@ PixelValue **convertImageToPixels(tga::TGAImage image)
 	for(int y = 0; y < h; y++) {
 		for(int x = 0; x < w; x++) {
 			PixelValue pixelValue;
-			pixelValue.r = image.imageData[pos] / 255.0;
-			pixelValue.g = image.imageData[pos + 1] / 255.0;
-			pixelValue.b = image.imageData[pos + 2] / 255.0;
+			pixelValue.r = image.imageData[pos] / 255.f;
+			pixelValue.g = image.imageData[pos + 1] / 255.f;
+			pixelValue.b = image.imageData[pos + 2] / 255.f;
 			pixels[y][x] = pixelValue;
 
 			pos += 3;
