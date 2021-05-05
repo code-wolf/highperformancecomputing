@@ -177,7 +177,6 @@ PixelValue** applyOnGPU(double **filter,
 
 	// memory for the resulting image
 	PixelValue* outPixels = new PixelValue[vector_size];
-	memcpy_s(outPixels, vector_size, pixelVector, vector_size);
 
 	// create OpenCL Buffers
 	cl_mem pixelBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY, vector_size, NULL, &status);

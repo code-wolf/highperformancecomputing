@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #else
 #include "CL/cl.h"
-#include <malloc.h>
 #endif
 
 #include "image_utils.h"
