@@ -13,7 +13,6 @@
 #include <vector>
 #include <assert.h>
 #include <cmath>
-//#include "tga.h"
 
 #include "image_utils.h"
 
@@ -227,7 +226,7 @@ PixelValue** applyOnGPU(double **filter,
 
 void gaussianBlur(int radius, cl_context context, cl_command_queue command_queue, cl_kernel kernel)
 {
-	tga::TGAImage image = loadImage("lena.tga");
+	tga::TGAImage image = loadImage("lena_portrait.tga");
 	
 	PixelValue **pixels = convertImageToPixels(image);
 	double **gaussKernel = setupGaussFilterKernel(radius);
@@ -241,13 +240,13 @@ void gaussianBlur(int radius, cl_context context, cl_command_queue command_queue
 
 	convertPixelsToImage(filteredPixels, outImage);
 
-	tga::saveTGA(outImage, ("lena_out_gpu_" + std::to_string(radius) + ".tga").c_str());
+	tga::saveTGA(outImage, ("lena_portrait_out_gpu_" + std::to_string(radius) + ".tga").c_str());
 }
 
 int main(int argc, char **argv) 
 {
 	// Gauss filter radius
-	const int radius = 9;
+	const int radius = 11;
 	
 	// used for checking error status of api calls
 	cl_int status;
