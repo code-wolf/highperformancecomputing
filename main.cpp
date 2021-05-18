@@ -185,7 +185,7 @@ PixelValue** applyOnGPU(double **filter,
 	cl_mem outputBuffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY, vector_size, NULL, &status);
 	checkStatus(status);
 
-	// send memoery to devoce
+	// send memory to device
 	checkStatus(clEnqueueWriteBuffer(commandQueue, pixelBuffer, CL_TRUE, 0, vector_size, pixelVector, 0, NULL, NULL));
 	checkStatus(clEnqueueWriteBuffer(commandQueue, filterBuffer, CL_TRUE, 0, filter_size, filterVector, 0, NULL, NULL));
 
