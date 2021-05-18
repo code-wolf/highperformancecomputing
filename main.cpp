@@ -196,8 +196,10 @@ PixelValue** applyOnGPU(double **filter,
 	checkStatus(clSetKernelArg(kernel, 3, sizeof(int), &radius));
 	
 	size_t globalWorkSize[2] = {imageHeight, imageWidth};
-	cout << "global work size: " << globalWorkSize[0] << "," << globalWorkSize[1] << endl;
-	checkStatus(clEnqueueNDRangeKernel(commandQueue, kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL));
+	size_t localWorkSizeHeight[2] = {imageHeight, 1};
+	size_t localWorkSizeWidth[2] = {1, imageWidth};
+	checkStatus(clEnqueueNDRangeKernel(commandQueue, kernel, 2, NULL, globalWorkSize, localWorkSizeHeight, 0, NULL, NULL));
+	checkStatus(clEnqueueNDRangeKernel(commandQueue, kernel, 2, NULL, globalWorkSize, localWorkSizeWidth, 0, NULL, NULL));
 
 	checkStatus(clEnqueueReadBuffer(commandQueue, outputBuffer, CL_TRUE, 0, vector_size, outPixels, 0, NULL, NULL));
 
@@ -226,7 +228,7 @@ PixelValue** applyOnGPU(double **filter,
 
 void gaussianBlur(int radius, cl_context context, cl_command_queue command_queue, cl_kernel kernel)
 {
-	tga::TGAImage image = loadImage("lena_portrait.tga");
+	tga::TGAImage image = loadImage("lena.tga");
 	
 	PixelValue **pixels = convertImageToPixels(image);
 	double **gaussKernel = setupGaussFilterKernel(radius);
@@ -240,13 +242,13 @@ void gaussianBlur(int radius, cl_context context, cl_command_queue command_queue
 
 	convertPixelsToImage(filteredPixels, outImage);
 
-	tga::saveTGA(outImage, ("lena_portrait_out_gpu_" + std::to_string(radius) + ".tga").c_str());
+	tga::saveTGA(outImage, ("lena_out_gpu_" + std::to_string(radius) + ".tga").c_str());
 }
 
 int main(int argc, char **argv) 
 {
 	// Gauss filter radius
-	const int radius = 11;
+	const int radius = 3;
 	
 	// used for checking error status of api calls
 	cl_int status;
@@ -267,7 +269,7 @@ int main(int argc, char **argv)
 
 	// retrieve the number of devices
 	cl_uint numDevices = 0;
-	checkStatus(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, NULL, &numDevices));
+	checkStatus(clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 0, NULL, &numDevices));
 
 	if (numDevices == 0)
 	{
@@ -275,9 +277,11 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
+	cout << "gpus: " << numDevices << endl;
+
 	// select the device
 	cl_device_id device;
-	checkStatus(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 1, &device, NULL));
+	checkStatus(clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 1, &device, NULL));
 
 	// create context
 	cl_context context = clCreateContext(NULL, 1, &device, NULL, NULL, &status);
