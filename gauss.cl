@@ -7,6 +7,7 @@ typedef struct _PixelValue
 
 __kernel void gauss(
 	__global const PixelValue *imageData,
+	__local PixelValue *localBuffer,
 	__global const double *filter,
 	__global PixelValue *outputBuffer,
 	__private int radius
@@ -22,14 +23,14 @@ __kernel void gauss(
 
 	//printf("(%d,%d),(%d,%d)\n", y, x, l_y, l_x);
 	
-	__local PixelValue localBuffer[512];
+	//__local PixelValue localBuffer[512];
 
 	PixelValue newPixelValue;
 
 	int imagePos = y * outputWidth + x;
 	PixelValue oldPixelValue = imageData[imagePos];
 	
-	localBuffer[imagePos] = oldPixelValue;
+	localBuffer[l_y] = oldPixelValue;
 	mem_fence(CLK_LOCAL_MEM_FENCE);
 
 	float r = 0, g = 0, b = 0;

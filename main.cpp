@@ -153,6 +153,12 @@ PixelValue** applyOnGPU(double **filter,
 	size_t num_elements = (imageHeight * imageWidth);
 	size_t vector_size = (num_elements * sizeof(PixelValue));
 	size_t filter_size = (filterHeight * filterWidth) * sizeof(double);
+	size_t row_size = (imageWidth * sizeof(PixelValue));
+	size_t column_size = (imageHeight * sizeof(PixelValue));
+
+	size_t globalWorkSize[2] = {imageHeight, imageWidth};
+	size_t localWorkSizeHeight[2] = {imageHeight, 1};
+	size_t localWorkSizeWidth[2] = {1, imageWidth};
 
 	// allocate memory and convert 2D array to 1D vector for the actual image data
 	PixelValue *pixelVector = new PixelValue[vector_size]();
@@ -184,23 +190,37 @@ PixelValue** applyOnGPU(double **filter,
 	checkStatus(status);
 	cl_mem outputBuffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY, vector_size, NULL, &status);
 	checkStatus(status);
+	cl_mem rowLocalBuffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY, row_size, NULL, &status);
+	checkStatus(status);
+	cl_mem columnLocalBuffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY, column_size, NULL, &status);
+	checkStatus(status);
 
+	// PROCESS ROWS
 	// send memory to device
 	checkStatus(clEnqueueWriteBuffer(commandQueue, pixelBuffer, CL_TRUE, 0, vector_size, pixelVector, 0, NULL, NULL));
 	checkStatus(clEnqueueWriteBuffer(commandQueue, filterBuffer, CL_TRUE, 0, filter_size, filterVector, 0, NULL, NULL));
-
+	
 	// set kernel arguments
 	checkStatus(clSetKernelArg(kernel, 0, sizeof(cl_mem), &pixelBuffer));
-	checkStatus(clSetKernelArg(kernel, 1, sizeof(cl_mem), &filterBuffer));
-	checkStatus(clSetKernelArg(kernel, 2, sizeof(cl_mem), &outputBuffer));
-	checkStatus(clSetKernelArg(kernel, 3, sizeof(int), &radius));
+	checkStatus(clSetKernelArg(kernel, 1, sizeof(cl_mem), NULL));
+	checkStatus(clSetKernelArg(kernel, 2, sizeof(cl_mem), &filterBuffer));
+	checkStatus(clSetKernelArg(kernel, 3, sizeof(cl_mem), &outputBuffer));
+	checkStatus(clSetKernelArg(kernel, 4, sizeof(int), &radius));
 	
-	size_t globalWorkSize[2] = {imageHeight, imageWidth};
-	size_t localWorkSizeHeight[2] = {imageHeight, 1};
-	size_t localWorkSizeWidth[2] = {1, imageWidth};
 	checkStatus(clEnqueueNDRangeKernel(commandQueue, kernel, 2, NULL, globalWorkSize, localWorkSizeHeight, 0, NULL, NULL));
-	checkStatus(clEnqueueNDRangeKernel(commandQueue, kernel, 2, NULL, globalWorkSize, localWorkSizeWidth, 0, NULL, NULL));
+	checkStatus(clEnqueueReadBuffer(commandQueue, outputBuffer, CL_TRUE, 0, vector_size, outPixels, 0, NULL, NULL));
 
+	// PROCESS COLUMN
+	// send memory to device
+	checkStatus(clEnqueueWriteBuffer(commandQueue, pixelBuffer, CL_TRUE, 0, vector_size, pixelVector, 0, NULL, NULL));
+	checkStatus(clEnqueueWriteBuffer(commandQueue, filterBuffer, CL_TRUE, 0, filter_size, filterVector, 0, NULL, NULL));
+	// set kernel arguments
+	checkStatus(clSetKernelArg(kernel, 0, sizeof(cl_mem), &pixelBuffer));
+	checkStatus(clSetKernelArg(kernel, 1, sizeof(cl_mem), NULL));
+	checkStatus(clSetKernelArg(kernel, 2, sizeof(cl_mem), &filterBuffer));
+	checkStatus(clSetKernelArg(kernel, 3, sizeof(cl_mem), &outputBuffer));
+	checkStatus(clSetKernelArg(kernel, 4, sizeof(int), &radius));
+	checkStatus(clEnqueueNDRangeKernel(commandQueue, kernel, 2, NULL, globalWorkSize, localWorkSizeWidth, 0, NULL, NULL));
 	checkStatus(clEnqueueReadBuffer(commandQueue, outputBuffer, CL_TRUE, 0, vector_size, outPixels, 0, NULL, NULL));
 
 	// allocate memory for the result image and convert the 1D array to a nice 2D array
@@ -276,8 +296,6 @@ int main(int argc, char **argv)
 		printf("Error: No OpenCL device available for platform!\n");
 		exit(EXIT_FAILURE);
 	}
-
-	cout << "gpus: " << numDevices << endl;
 
 	// select the device
 	cl_device_id device;
