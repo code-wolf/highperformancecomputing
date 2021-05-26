@@ -30,7 +30,7 @@ __kernel void gauss(
 	int imagePos = y * outputWidth + x;
 	PixelValue oldPixelValue = imageData[imagePos];
 	
-	localBuffer[l_y] = oldPixelValue;
+	localBuffer[imagePos] = oldPixelValue;
 	mem_fence(CLK_LOCAL_MEM_FENCE);
 
 	float r = 0, g = 0, b = 0;

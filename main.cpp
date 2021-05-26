@@ -190,11 +190,7 @@ PixelValue** applyOnGPU(double **filter,
 	checkStatus(status);
 	cl_mem outputBuffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY, vector_size, NULL, &status);
 	checkStatus(status);
-	cl_mem rowLocalBuffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY, row_size, NULL, &status);
-	checkStatus(status);
-	cl_mem columnLocalBuffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY, column_size, NULL, &status);
-	checkStatus(status);
-
+	
 	// PROCESS ROWS
 	// send memory to device
 	checkStatus(clEnqueueWriteBuffer(commandQueue, pixelBuffer, CL_TRUE, 0, vector_size, pixelVector, 0, NULL, NULL));
@@ -202,7 +198,7 @@ PixelValue** applyOnGPU(double **filter,
 	
 	// set kernel arguments
 	checkStatus(clSetKernelArg(kernel, 0, sizeof(cl_mem), &pixelBuffer));
-	checkStatus(clSetKernelArg(kernel, 1, sizeof(cl_mem), NULL));
+	checkStatus(clSetKernelArg(kernel, 1, sizeof(column_size), NULL));
 	checkStatus(clSetKernelArg(kernel, 2, sizeof(cl_mem), &filterBuffer));
 	checkStatus(clSetKernelArg(kernel, 3, sizeof(cl_mem), &outputBuffer));
 	checkStatus(clSetKernelArg(kernel, 4, sizeof(int), &radius));
@@ -216,7 +212,7 @@ PixelValue** applyOnGPU(double **filter,
 	checkStatus(clEnqueueWriteBuffer(commandQueue, filterBuffer, CL_TRUE, 0, filter_size, filterVector, 0, NULL, NULL));
 	// set kernel arguments
 	checkStatus(clSetKernelArg(kernel, 0, sizeof(cl_mem), &pixelBuffer));
-	checkStatus(clSetKernelArg(kernel, 1, sizeof(cl_mem), NULL));
+	checkStatus(clSetKernelArg(kernel, 1, sizeof(row_size), NULL));
 	checkStatus(clSetKernelArg(kernel, 2, sizeof(cl_mem), &filterBuffer));
 	checkStatus(clSetKernelArg(kernel, 3, sizeof(cl_mem), &outputBuffer));
 	checkStatus(clSetKernelArg(kernel, 4, sizeof(int), &radius));
