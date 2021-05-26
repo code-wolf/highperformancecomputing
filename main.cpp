@@ -202,12 +202,12 @@ PixelValue** applyOnGPU(double **filter,
 	checkStatus(clSetKernelArg(kernel, 2, sizeof(cl_mem), &filterBuffer));
 	checkStatus(clSetKernelArg(kernel, 3, sizeof(cl_mem), &outputBuffer));
 	checkStatus(clSetKernelArg(kernel, 4, sizeof(int), &radius));
-	
 	checkStatus(clEnqueueNDRangeKernel(commandQueue, kernel, 2, NULL, globalWorkSize, localWorkSizeHeight, 0, NULL, NULL));
 	checkStatus(clEnqueueReadBuffer(commandQueue, outputBuffer, CL_TRUE, 0, vector_size, outPixels, 0, NULL, NULL));
 
 	// PROCESS COLUMN
 	// send memory to device
+	/*
 	checkStatus(clEnqueueWriteBuffer(commandQueue, pixelBuffer, CL_TRUE, 0, vector_size, pixelVector, 0, NULL, NULL));
 	checkStatus(clEnqueueWriteBuffer(commandQueue, filterBuffer, CL_TRUE, 0, filter_size, filterVector, 0, NULL, NULL));
 	// set kernel arguments
@@ -218,6 +218,7 @@ PixelValue** applyOnGPU(double **filter,
 	checkStatus(clSetKernelArg(kernel, 4, sizeof(int), &radius));
 	checkStatus(clEnqueueNDRangeKernel(commandQueue, kernel, 2, NULL, globalWorkSize, localWorkSizeWidth, 0, NULL, NULL));
 	checkStatus(clEnqueueReadBuffer(commandQueue, outputBuffer, CL_TRUE, 0, vector_size, outPixels, 0, NULL, NULL));
+*/
 
 	// allocate memory for the result image and convert the 1D array to a nice 2D array
 	PixelValue **result;
