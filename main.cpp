@@ -15,6 +15,7 @@
 #include <cmath>
 
 #include "image_utils.h"
+#include "globals.h"
 
 using namespace std;
 
@@ -136,8 +137,7 @@ void printPixels(PixelValue **pixels, int width, int height, const char *filenam
 	file1.close();
 }
 
-PixelValue** applyOnGPU(double **filter,
-						cl_int radius,
+PixelValue** applyOnGPU(double * filterVector,
 						PixelValue **pixels,
 						size_t imageWidth,
 						size_t imageHeight,
@@ -146,8 +146,8 @@ PixelValue** applyOnGPU(double **filter,
 						cl_kernel kernel)
 {
 	int pos; 
-	int filterHeight = 2 * radius + 1;
-	int filterWidth = 2 * radius + 1;
+	int filterHeight = 2 * smooth_kernel_size + 1;
+	int filterWidth = 2 * smooth_kernel_size + 1;
 	cl_int status;
 
 	size_t num_elements = (imageHeight * imageWidth);
@@ -170,16 +170,6 @@ PixelValue** applyOnGPU(double **filter,
 		}
 	}
 
-	// allocate memory and convert 2D array to 1D vector for the gauss kernel
-	double *filterVector = new double[filter_size];
-	pos = 0;
-	for(int y = 0; y < filterHeight; y++) {
-		for (int x = 0; x < filterWidth; x++) {
-			filterVector[pos] = filter[y][x];
-			pos++;
-		}
-	}
-
 	// memory for the resulting image
 	PixelValue* outPixels = new PixelValue[vector_size];
 
@@ -198,10 +188,10 @@ PixelValue** applyOnGPU(double **filter,
 	
 	// set kernel arguments
 	checkStatus(clSetKernelArg(kernel, 0, sizeof(cl_mem), &pixelBuffer));
-	checkStatus(clSetKernelArg(kernel, 1, sizeof(column_size), NULL));
+	checkStatus(clSetKernelArg(kernel, 1, column_size, NULL));
 	checkStatus(clSetKernelArg(kernel, 2, sizeof(cl_mem), &filterBuffer));
 	checkStatus(clSetKernelArg(kernel, 3, sizeof(cl_mem), &outputBuffer));
-	checkStatus(clSetKernelArg(kernel, 4, sizeof(int), &radius));
+	checkStatus(clSetKernelArg(kernel, 4, sizeof(int), &smooth_kernel_size));
 	checkStatus(clEnqueueNDRangeKernel(commandQueue, kernel, 2, NULL, globalWorkSize, localWorkSizeHeight, 0, NULL, NULL));
 	checkStatus(clEnqueueReadBuffer(commandQueue, outputBuffer, CL_TRUE, 0, vector_size, outPixels, 0, NULL, NULL));
 
@@ -215,7 +205,7 @@ PixelValue** applyOnGPU(double **filter,
 	checkStatus(clSetKernelArg(kernel, 1, sizeof(row_size), NULL));
 	checkStatus(clSetKernelArg(kernel, 2, sizeof(cl_mem), &filterBuffer));
 	checkStatus(clSetKernelArg(kernel, 3, sizeof(cl_mem), &outputBuffer));
-	checkStatus(clSetKernelArg(kernel, 4, sizeof(int), &radius));
+	checkStatus(clSetKernelArg(kernel, 4, sizeof(int), &smooth_kernel_size));
 	checkStatus(clEnqueueNDRangeKernel(commandQueue, kernel, 2, NULL, globalWorkSize, localWorkSizeWidth, 0, NULL, NULL));
 	checkStatus(clEnqueueReadBuffer(commandQueue, outputBuffer, CL_TRUE, 0, vector_size, outPixels, 0, NULL, NULL));
 */
@@ -243,13 +233,13 @@ PixelValue** applyOnGPU(double **filter,
 	return result;
 }
 
-void gaussianBlur(int radius, cl_context context, cl_command_queue command_queue, cl_kernel kernel)
+void gaussianBlur(cl_context context, cl_command_queue command_queue, cl_kernel kernel)
 {
 	tga::TGAImage image = loadImage("lena.tga");
 	
 	PixelValue **pixels = convertImageToPixels(image);
-	double **gaussKernel = setupGaussFilterKernel(radius);
-	PixelValue **filteredPixels = applyOnGPU(gaussKernel, radius, pixels, image.width, image.height, context, command_queue, kernel);
+	double *gaussKernel = setupGaussFilterKernel();
+	PixelValue **filteredPixels = applyOnGPU(gaussKernel, pixels, image.width, image.height, context, command_queue, kernel);
 	
 	tga::TGAImage outImage;
 	outImage.height = image.height;
@@ -259,13 +249,12 @@ void gaussianBlur(int radius, cl_context context, cl_command_queue command_queue
 
 	convertPixelsToImage(filteredPixels, outImage);
 
-	tga::saveTGA(outImage, ("lena_out_gpu_" + std::to_string(radius) + ".tga").c_str());
+	tga::saveTGA(outImage, ("lena_out_gpu_" + std::to_string(smooth_kernel_size) + ".tga").c_str());
 }
 
 int main(int argc, char **argv) 
 {
-	// Gauss filter radius
-	const int radius = 3;
+
 	
 	// used for checking error status of api calls
 	cl_int status;
@@ -352,7 +341,7 @@ int main(int argc, char **argv)
 	printf("\n");
 	delete[] (maxWorkItemSizes);
 
-	gaussianBlur(radius, context, commandQueue, kernel);
+	gaussianBlur(context, commandQueue, kernel);
 
 	// release opencl objects
 	checkStatus(clReleaseKernel(kernel));

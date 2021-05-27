@@ -8,6 +8,8 @@
 #include "image_utils.h"
 #include <iostream>
 #include <cmath>
+#include "globals.h"
+
 
 using namespace std;
 
@@ -22,33 +24,19 @@ tga::TGAImage loadImage(const char *path)
 	return image;
 }
 
-double** setupGaussFilterKernel(int radius)
+double* setupGaussFilterKernel()
 {
-	double sigma = max(radius / 2, 1);
-	int height = 2 * radius + 1;
-	int width = 2 * radius + 1;
+	double gauss[smooth_kernel_size][smooth_kernel_size];
 	double sum = 0;
-	int x,y;
-
-	double** _kernel = new double* [width];
-	for(int i = 0; i < width; i++) {
-		_kernel[i] = new double [height];
-	}
+	int i, j;
 	
-	for(y = -radius; y <= radius; y++) {
-		for(x = -radius; x <= radius; x++) {
-			_kernel[x + radius][y + radius] = exp(-(x * x + y * y) / (2 * sigma * sigma)) / (2 * CL_M_PI * sigma * sigma);
-            sum += _kernel[x + radius][y + radius];
-		}
+	double gaussSeparated[smooth_kernel_size];
+
+	for (i = 0; i < smooth_kernel_size; i++) {
+		gaussSeparated[i] = sqrt(gauss[i][i]);
 	}
 
-	for (y = 0 ; y < height ; y++) {
-        for (x = 0 ; x < width ; x++) {
-            _kernel[y][x] /= sum;
-        }
-    }
-
-	return _kernel;
+	return gaussSeparated;
 }
 
 void convertPixelsToImage(PixelValue **pixels, tga::TGAImage &image)
