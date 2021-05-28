@@ -26,6 +26,7 @@ __kernel void gauss(
 	
 	bool isColumns = size_x > 1;
 	size_t local_index = (isColumns) ? l_x : l_y;
+	size_t image_size = (isColumns) ? outputWidth : outputHeight;
 	
 	int imagePos = y * outputWidth + x;
 	PixelValue oldPixelValue = imageData[imagePos];
@@ -36,14 +37,12 @@ __kernel void gauss(
 	float r = 0, g = 0, b = 0;
 
 	for (int h = -radius; h <= radius; h++) {
-			int filterPos = clamp((h + radius),0,2*radius);
-			int p = (isColumns) ? y : x;
-
-			int pixelPos = (p + h) * outputWidth;
-			
+			int filterPos = clamp((h + radius), 0, 2 * radius);
 			double kernelValue = filter[filterPos];		
 			
-			PixelValue pixelValue = localBuffer[local_index + filterPos];
+			int buffer_index = clamp((int)(local_index + filterPos), 0, (int)image_size);
+
+			PixelValue pixelValue = localBuffer[buffer_index];
 			
 			r += kernelValue * pixelValue.r;
 			g += kernelValue * pixelValue.g;
