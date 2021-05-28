@@ -36,7 +36,7 @@ __kernel void gauss(
 	float r = 0, g = 0, b = 0;
 
 	for (int h = -radius; h <= radius; h++) {
-			int filterPos = (h + radius);
+			int filterPos = clamp((h + radius),0,2*radius);
 			int p = (isColumns) ? y : x;
 
 			int pixelPos = (p + h) * outputWidth;
