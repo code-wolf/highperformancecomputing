@@ -19,7 +19,6 @@
 
 using namespace std;
 
-
 std::string cl_errorstring(cl_int err)
 {
 	switch (err)
@@ -146,19 +145,18 @@ PixelValue** applyOnGPU(double * filterVector,
 						cl_kernel kernel)
 {
 	int pos; 
-	int filterHeight = 2 * smooth_kernel_size + 1;
-	int filterWidth = 2 * smooth_kernel_size + 1;
 	cl_int status;
 
 	size_t num_elements = (imageHeight * imageWidth);
 	size_t vector_size = (num_elements * sizeof(PixelValue));
-	size_t filter_size = (filterHeight * filterWidth) * sizeof(double);
+	size_t filter_size = smooth_kernel_size * sizeof(double);
 	size_t row_size = (imageWidth * sizeof(PixelValue));
 	size_t column_size = (imageHeight * sizeof(PixelValue));
 
 	size_t globalWorkSize[2] = {imageHeight, imageWidth};
 	size_t localWorkSizeHeight[2] = {imageHeight, 1};
 	size_t localWorkSizeWidth[2] = {1, imageWidth};
+	int radius = floor(smooth_kernel_size / 2);
 
 	// allocate memory and convert 2D array to 1D vector for the actual image data
 	PixelValue *pixelVector = new PixelValue[vector_size]();
@@ -191,7 +189,7 @@ PixelValue** applyOnGPU(double * filterVector,
 	checkStatus(clSetKernelArg(kernel, 1, column_size, NULL));
 	checkStatus(clSetKernelArg(kernel, 2, sizeof(cl_mem), &filterBuffer));
 	checkStatus(clSetKernelArg(kernel, 3, sizeof(cl_mem), &outputBuffer));
-	checkStatus(clSetKernelArg(kernel, 4, sizeof(int), &smooth_kernel_size));
+	checkStatus(clSetKernelArg(kernel, 4, sizeof(int), &radius));
 	checkStatus(clEnqueueNDRangeKernel(commandQueue, kernel, 2, NULL, globalWorkSize, localWorkSizeHeight, 0, NULL, NULL));
 	checkStatus(clEnqueueReadBuffer(commandQueue, outputBuffer, CL_TRUE, 0, vector_size, outPixels, 0, NULL, NULL));
 
