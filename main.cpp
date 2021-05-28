@@ -169,7 +169,8 @@ PixelValue** applyOnGPU(double *filterVector,
 	}
 
 	// memory for the resulting image
-	PixelValue* outPixels = new PixelValue[vector_size];
+	PixelValue* outPixels1 = new PixelValue[vector_size];
+	PixelValue* outPixels2 = new PixelValue[vector_size];
 
 	// create OpenCL Buffers
 	cl_mem pixelBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY, vector_size, NULL, &status);
@@ -191,37 +192,40 @@ PixelValue** applyOnGPU(double *filterVector,
 	checkStatus(clSetKernelArg(kernel, 3, sizeof(cl_mem), &outputBuffer));
 	checkStatus(clSetKernelArg(kernel, 4, sizeof(int), &radius));
 	checkStatus(clEnqueueNDRangeKernel(commandQueue, kernel, 2, NULL, globalWorkSize, localWorkSizeHeight, 0, NULL, NULL));
-	checkStatus(clEnqueueReadBuffer(commandQueue, outputBuffer, CL_TRUE, 0, vector_size, outPixels, 0, NULL, NULL));
+	checkStatus(clEnqueueReadBuffer(commandQueue, outputBuffer, CL_TRUE, 0, vector_size, outPixels1, 0, NULL, NULL));
 
-	// PROCESS COLUMN
+	// PROCESS COLUMNS
 	// send memory to device
-	/*
 	checkStatus(clEnqueueWriteBuffer(commandQueue, pixelBuffer, CL_TRUE, 0, vector_size, pixelVector, 0, NULL, NULL));
 	checkStatus(clEnqueueWriteBuffer(commandQueue, filterBuffer, CL_TRUE, 0, filter_size, filterVector, 0, NULL, NULL));
+	
 	// set kernel arguments
 	checkStatus(clSetKernelArg(kernel, 0, sizeof(cl_mem), &pixelBuffer));
-	checkStatus(clSetKernelArg(kernel, 1, sizeof(row_size), NULL));
+	checkStatus(clSetKernelArg(kernel, 1, row_size, NULL));
 	checkStatus(clSetKernelArg(kernel, 2, sizeof(cl_mem), &filterBuffer));
 	checkStatus(clSetKernelArg(kernel, 3, sizeof(cl_mem), &outputBuffer));
 	checkStatus(clSetKernelArg(kernel, 4, sizeof(int), &smooth_kernel_size));
 	checkStatus(clEnqueueNDRangeKernel(commandQueue, kernel, 2, NULL, globalWorkSize, localWorkSizeWidth, 0, NULL, NULL));
-	checkStatus(clEnqueueReadBuffer(commandQueue, outputBuffer, CL_TRUE, 0, vector_size, outPixels, 0, NULL, NULL));
-*/
+	checkStatus(clEnqueueReadBuffer(commandQueue, outputBuffer, CL_TRUE, 0, vector_size, outPixels2, 0, NULL, NULL));
 
 	// allocate memory for the result image and convert the 1D array to a nice 2D array
-	PixelValue **result;
-	result = new PixelValue*[imageHeight];
-	for(size_t i = 0; i < imageHeight; i++) {
+	PixelValue** result;
+	result = new PixelValue * [imageHeight];
+	for (size_t i = 0; i < imageHeight; i++) {
 		result[i] = new PixelValue[imageWidth];
 	}
 
+	// merge
 	pos = 0;
 	for (size_t y = 0; y < imageHeight; y++) {
-		for(size_t x = 0; x < imageWidth; x++) {
-			result[y][x] = outPixels[pos];
+		for (size_t x = 0; x < imageWidth; x++) {
+			result[y][x].r = (outPixels1[pos].r / 2) + (outPixels2[pos].r / 2);
+			result[y][x].g = (outPixels1[pos].g / 2) + (outPixels2[pos].g / 2);
+			result[y][x].b = (outPixels1[pos].b / 2) + (outPixels2[pos].b / 2);
 			pos++;
 		}
 	}
+	
 
 	// free memory
 	checkStatus(clReleaseMemObject(pixelBuffer));
