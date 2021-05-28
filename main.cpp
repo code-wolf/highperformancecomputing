@@ -136,7 +136,7 @@ void printPixels(PixelValue **pixels, int width, int height, const char *filenam
 	file1.close();
 }
 
-PixelValue** applyOnGPU(double * filterVector,
+PixelValue** applyOnGPU(double *filterVector,
 						PixelValue **pixels,
 						size_t imageWidth,
 						size_t imageHeight,
@@ -236,7 +236,10 @@ void gaussianBlur(cl_context context, cl_command_queue command_queue, cl_kernel 
 	tga::TGAImage image = loadImage("lena.tga");
 	
 	PixelValue **pixels = convertImageToPixels(image);
-	double *gaussKernel = setupGaussFilterKernel();
+	
+	double gaussKernel[smooth_kernel_size];
+	setupGaussFilterKernel(gaussKernel);
+
 	PixelValue **filteredPixels = applyOnGPU(gaussKernel, pixels, image.width, image.height, context, command_queue, kernel);
 	
 	tga::TGAImage outImage;

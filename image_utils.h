@@ -16,7 +16,7 @@ tga::TGAImage loadImage(const char *path);
  * Sets up the gauss kernel (filter) for a given radius
  * @return: an array containing the filter values
  **/
-double* setupGaussFilterKernel();
+double* setupGaussFilterKernel(double *gauss);
 
 /**
  * Converts a two-dimensional image array (y,x) to a TGA image
