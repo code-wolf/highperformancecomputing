@@ -4,7 +4,7 @@ Authors: Alexander Wolf, Patrick Nanzer, Melissa Schmidt
 
 ## Description
 
-A simple gaussian blur wit OpenCL in C++. The package contains the demo image and the demo image in portrait.
+An improved gaussian blur wit OpenCL in C++. The package contains the demo image and the demo image in portrait.
 
 ## Build
 
