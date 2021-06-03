@@ -37,16 +37,16 @@ __kernel void gauss(
 	float r = 0, g = 0, b = 0;
 
 	for (int h = -radius; h <= radius; h++) {
-			int filterPos = clamp((h + radius), 0, 2 * radius);
-			double kernelValue = filter[filterPos];		
+		int filterPos = clamp((h + radius), 0, 2 * radius); 
+		double kernelValue = filter[filterPos];
 			
-			int buffer_index = clamp((int)(local_index + filterPos), 0, (int)image_size);
+		int buffer_index = clamp((int)(local_index + h), 0, (int)image_size);
 
-			PixelValue pixelValue = localBuffer[buffer_index];
+		PixelValue pixelValue = localBuffer[buffer_index];
 			
-			r += kernelValue * pixelValue.r;
-			g += kernelValue * pixelValue.g;
-			b += kernelValue * pixelValue.b;;
+		r += kernelValue * pixelValue.r;
+		g += kernelValue * pixelValue.g;
+		b += kernelValue * pixelValue.b;
 	}
 
 	PixelValue newPixelValue;
