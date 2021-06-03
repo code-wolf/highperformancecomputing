@@ -71,7 +71,7 @@ std::string cl_errorstring(cl_int err)
 	case CL_INVALID_GL_OBJECT:                			return std::string("Invalid OpenGL object");
 	case CL_INVALID_BUFFER_SIZE:              			return std::string("Invalid buffer size");
 	case CL_INVALID_MIP_LEVEL:                			return std::string("Invalid mip-map level");
-	case CL_INVALID_GLOBAL_WORK_SIZE:         			return std::string("Invalid gloal work size");
+	case CL_INVALID_GLOBAL_WORK_SIZE:         			return std::string("Invalid global work size");
 	case CL_INVALID_PROPERTY:                 			return std::string("Invalid property");
 	default:                                  			return std::string("Unknown error code");
 	}
@@ -226,7 +226,6 @@ PixelValue** applyOnGPU(double *filterVector,
 		}
 	}
 	
-
 	// free memory
 	checkStatus(clReleaseMemObject(pixelBuffer));
 	checkStatus(clReleaseMemObject(filterBuffer));
@@ -259,8 +258,6 @@ void gaussianBlur(cl_context context, cl_command_queue command_queue, cl_kernel 
 
 int main(int argc, char **argv) 
 {
-
-	
 	// used for checking error status of api calls
 	cl_int status;
 
