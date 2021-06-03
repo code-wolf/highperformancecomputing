@@ -204,7 +204,7 @@ PixelValue** applyOnGPU(double *filterVector,
 	checkStatus(clSetKernelArg(kernel, 1, row_size, NULL));
 	checkStatus(clSetKernelArg(kernel, 2, sizeof(cl_mem), &filterBuffer));
 	checkStatus(clSetKernelArg(kernel, 3, sizeof(cl_mem), &outputBuffer));
-	checkStatus(clSetKernelArg(kernel, 4, sizeof(int), &smooth_kernel_size));
+	checkStatus(clSetKernelArg(kernel, 4, sizeof(int), &radius));
 	checkStatus(clEnqueueNDRangeKernel(commandQueue, kernel, 2, NULL, globalWorkSize, localWorkSizeWidth, 0, NULL, NULL));
 	checkStatus(clEnqueueReadBuffer(commandQueue, outputBuffer, CL_TRUE, 0, vector_size, outPixels2, 0, NULL, NULL));
 
